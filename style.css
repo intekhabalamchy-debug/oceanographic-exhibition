@@ -1461,3 +1461,81 @@ body.floodlight-on {
   background: var(--cyan-primary);
   color: #02050a;
 }
+
+/* ===================================================================
+   ANIMATION & MOTION CONTROL OVERRIDES
+   =================================================================== */
+html.animations-disabled {
+  scroll-behavior: auto !important;
+}
+
+body.animations-disabled {
+  --transition: 0s !important;
+  --transition-smooth: 0s !important;
+}
+
+body.animations-disabled *,
+body.animations-disabled *::before,
+body.animations-disabled *::after {
+  animation: none !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0s !important;
+}
+
+/* Static rendering for key elements when animation is paused */
+body.animations-disabled .telemetry-dot {
+  opacity: 0.85;
+  transform: none !important;
+}
+
+body.animations-disabled .scroll-cue-line {
+  opacity: 0.7;
+  transform: scaleY(1) !important;
+}
+
+body.animations-disabled .ping-circle {
+  opacity: 0.8;
+  r: 5;
+}
+
+body.animations-disabled #marine-snow-canvas {
+  opacity: 0.35;
+}
+
+/* Responsive adjustment for HUD Header controls on smaller viewports */
+@media (max-width: 900px) {
+  .hud-titles .hud-sub-title {
+    display: none;
+  }
+  .hud-right {
+    gap: 8px;
+  }
+  .hud-control-btn {
+    padding: 7px 11px;
+    font-size: 0.73rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hud-header {
+    padding: 0 16px;
+    height: 64px;
+  }
+  .hud-back-btn span {
+    display: none;
+  }
+  .hud-back-btn {
+    padding: 7px 12px;
+  }
+  .hud-control-btn .btn-text {
+    display: none;
+  }
+  .hud-control-btn {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .hud-right {
+    gap: 6px;
+  }
+}
+

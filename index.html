@@ -57,6 +57,14 @@
         <span class="btn-text">Hydrophone</span>
         <span class="status-indicator" id="hydrophone-indicator">MUTE</span>
       </button>
+
+      <!-- Visual Animation / Motion Toggle -->
+      <button class="hud-control-btn active" id="animation-toggle-btn" aria-label="Toggle Visual Animations and Motion"
+        title="Toggle Deep-Sea Animations and Motion">
+        <i class="fa-solid fa-play"></i>
+        <span class="btn-text">Animation</span>
+        <span class="status-indicator" id="animation-indicator">ON</span>
+      </button>
     </div>
   </header>
 
@@ -248,7 +256,7 @@
             <i class="fa-solid fa-arrow-left"></i>
             <span>Return to Portfolio</span>
           </a>
-          <button class="btn-secondary-glow" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+          <button class="btn-secondary-glow" onclick="scrollToTop()">
             <i class="fa-solid fa-arrow-up"></i>
             <span>Ascend to Surface (0m)</span>
           </button>

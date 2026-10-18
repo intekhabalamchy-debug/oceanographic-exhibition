@@ -7,6 +7,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  initAnimationControl();
   renderDeepSeaLifeTimeline();
   initMarineSnow();
   initFloodlightControl();
@@ -820,12 +821,19 @@ function initQuickJump() {
 
         window.scrollTo({
           top: offsetPosition,
-          behavior: 'smooth'
+          behavior: isAnimationsEnabled ? 'smooth' : 'auto'
         });
       }
     });
   });
 }
+
+window.scrollToTop = function () {
+  window.scrollTo({
+    top: 0,
+    behavior: isAnimationsEnabled ? 'smooth' : 'auto'
+  });
+};
 
 /* ===================================================================
    5. SPECIMEN ANATOMICAL MODAL CONTROLLER
@@ -892,8 +900,13 @@ document.addEventListener('click', (e) => {
 });
 
 /* ===================================================================
-   6. MARINE SNOW PARTICLES CANVAS
+   6. MARINE SNOW PARTICLES CANVAS & ANIMATION ENGINE
    =================================================================== */
+let isAnimationsEnabled = true;
+let marineSnowAnimationId = null;
+let renderMarineSnowLoop = null;
+let drawStaticSnowFn = null;
+
 function initMarineSnow() {
   const canvas = document.getElementById('marine-snow-canvas');
   if (!canvas) return;
@@ -905,6 +918,9 @@ function initMarineSnow() {
   window.addEventListener('resize', () => {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
+    if (!isAnimationsEnabled && drawStaticSnowFn) {
+      drawStaticSnowFn();
+    }
   });
 
   const particleCount = Math.min(100, Math.floor(width / 14));
@@ -925,6 +941,7 @@ function initMarineSnow() {
 
   const mouse = { x: -1000, y: -1000, active: false };
   window.addEventListener('mousemove', (e) => {
+    if (!isAnimationsEnabled) return;
     mouse.x = e.clientX;
     mouse.y = e.clientY;
     mouse.active = true;
@@ -934,7 +951,33 @@ function initMarineSnow() {
     mouse.active = false;
   });
 
-  function renderParticles() {
+  function drawParticle(p) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+
+    if (p.isBioluminescent) {
+      const glowOpacity = Math.sin(p.pulse) * 0.3 + 0.5;
+      ctx.fillStyle = `rgba(0, 240, 255, ${glowOpacity})`;
+      ctx.shadowColor = 'rgba(0, 240, 255, 0.8)';
+      ctx.shadowBlur = 8;
+    } else {
+      ctx.fillStyle = `rgba(230, 240, 255, ${p.opacity * 0.45})`;
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.fill();
+  }
+
+  drawStaticSnowFn = function drawStaticSnow() {
+    ctx.clearRect(0, 0, width, height);
+    for (let i = 0; i < particles.length; i++) {
+      drawParticle(particles[i]);
+    }
+  };
+
+  renderMarineSnowLoop = function renderParticles() {
+    if (!isAnimationsEnabled) return;
+
     ctx.clearRect(0, 0, width, height);
 
     for (let i = 0; i < particles.length; i++) {
@@ -960,27 +1003,85 @@ function initMarineSnow() {
         }
       }
 
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-
       if (p.isBioluminescent) {
         p.pulse += 0.03;
-        const glowOpacity = Math.sin(p.pulse) * 0.3 + 0.5;
-        ctx.fillStyle = `rgba(0, 240, 255, ${glowOpacity})`;
-        ctx.shadowColor = 'rgba(0, 240, 255, 0.8)';
-        ctx.shadowBlur = 8;
-      } else {
-        ctx.fillStyle = `rgba(230, 240, 255, ${p.opacity * 0.45})`;
-        ctx.shadowBlur = 0;
       }
 
-      ctx.fill();
+      drawParticle(p);
     }
 
-    requestAnimationFrame(renderParticles);
+    marineSnowAnimationId = requestAnimationFrame(renderMarineSnowLoop);
+  };
+
+  if (isAnimationsEnabled) {
+    marineSnowAnimationId = requestAnimationFrame(renderMarineSnowLoop);
+  } else {
+    drawStaticSnowFn();
+  }
+}
+
+/* ===================================================================
+   6.5. ANIMATION & MOTION PREFERENCE TOGGLE
+   =================================================================== */
+function setAnimationsEnabled(enabled) {
+  isAnimationsEnabled = enabled;
+  localStorage.setItem('abysse_animations_enabled', enabled ? 'true' : 'false');
+
+  const btn = document.getElementById('animation-toggle-btn');
+  const indicator = document.getElementById('animation-indicator');
+  const icon = btn ? btn.querySelector('i') : null;
+
+  if (enabled) {
+    document.body.classList.remove('animations-disabled');
+    document.documentElement.classList.remove('animations-disabled');
+    if (btn) btn.classList.add('active');
+    if (indicator) indicator.textContent = 'ON';
+    if (icon) {
+      icon.className = 'fa-solid fa-play';
+    }
+    if (renderMarineSnowLoop && !marineSnowAnimationId) {
+      marineSnowAnimationId = requestAnimationFrame(renderMarineSnowLoop);
+    }
+  } else {
+    document.body.classList.add('animations-disabled');
+    document.documentElement.classList.add('animations-disabled');
+    if (btn) btn.classList.remove('active');
+    if (indicator) indicator.textContent = 'OFF';
+    if (icon) {
+      icon.className = 'fa-solid fa-pause';
+    }
+    if (marineSnowAnimationId) {
+      cancelAnimationFrame(marineSnowAnimationId);
+      marineSnowAnimationId = null;
+    }
+    if (drawStaticSnowFn) {
+      drawStaticSnowFn();
+    }
+  }
+}
+
+function initAnimationControl() {
+  const btn = document.getElementById('animation-toggle-btn');
+
+  // Detect saved preference or system reduced motion setting
+  const savedPref = localStorage.getItem('abysse_animations_enabled');
+  const systemPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const initialEnabled = savedPref !== null ? savedPref === 'true' : !systemPrefersReduced;
+
+  setAnimationsEnabled(initialEnabled);
+
+  if (btn) {
+    btn.addEventListener('click', () => {
+      setAnimationsEnabled(!isAnimationsEnabled);
+    });
   }
 
-  renderParticles();
+  // React to OS reduced motion settings if user hasn't explicitly set a preference
+  window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+    if (localStorage.getItem('abysse_animations_enabled') === null) {
+      setAnimationsEnabled(!e.matches);
+    }
+  });
 }
 
 /* ===================================================================
